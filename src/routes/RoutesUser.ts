@@ -9,5 +9,6 @@ routes.post('/users', userController.create);
 routes.get('/users/:id', userController.show);
 routes.put('/users/:id', userController.update);
 routes.delete('/users/:id', userController.delete);
+routes.post('/usersLogin', userController.login);
 
 export default routes;

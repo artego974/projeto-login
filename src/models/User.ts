@@ -1,7 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert,BeforeUpdate, AfterLoad } from 'typeorm';
+import bcrypt from "bcryptjs";
 
-@Entity('users') // nome da tabela
+@Entity('users')
 export class User {
+
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -14,9 +16,32 @@ export class User {
     @Column({ type: "varchar", length: 255, nullable: false })
     password: string;
 
+    private _previousPassword: string;
+
     constructor(name: string, email: string, password: string) {
         this.name = name;
         this.email = email;
         this.password = password;
+        this._previousPassword = password;
+    }
+
+    @AfterLoad()
+    setPreviousPassword() {
+        this._previousPassword = this.password
+    }
+
+    @BeforeInsert()
+    async hashPasswordBeforeInsert() {
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
+    }
+  
+    @BeforeUpdate()
+    async hashPasswordBeforeUpdate() {
+      // ⚠️ Só re-hash se a senha tiver sido alterada
+      if (this.password !== this._previousPassword) {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+      }
     }
 }

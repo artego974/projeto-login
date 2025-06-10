@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../db/data-source';
-import { User } from '../models/user';
+import { User } from '../models/User';
+import bcryptjs from "bcryptjs"
 
 const userRepository = AppDataSource.getRepository(User);
 
 export class UserController {
+
     // Listar todos os usuários
     async list(req: Request, res: Response) {
         const users = await userRepository.find();
@@ -12,15 +14,45 @@ export class UserController {
         return
     }
 
+    async login(req: Request,res:Response) {
+
+        const {email, password} = req.body;
+
+        const user = await userRepository.findOneBy({ email });
+
+        if(!user){
+            res.status(404).json({message: "Usuario não encontrado"})
+            return;
+        }
+
+        const isValid = await bcryptjs.compare(password, user.password)
+        
+        if(!isValid){
+            res.status(401).json({message: "senha invalida"})
+            return
+        }else{
+            res.status(200).json({ message: "login bem sucedido" })
+            return;
+        }
+  
+    }
+
     // Criar novo usuário
     async create(req: Request, res: Response) {
         const { name, email, password } = req.body;
 
-        const user = userRepository.create({ name, email, password });
-        await userRepository.save(user);
+        if(!name || !email || !password) {
+            res.status(400).json({ message: "Todos os campos são necessários!" })
+            return
+        }
 
-        res.status(201).json(user);
+        const user = new User(name, email, password)
+        const newUser = await userRepository.create(user)
+        await userRepository.save(newUser)
+
+        res.status(201).json({ message: "Usuário criado com sucesso", user: newUser })
         return
+
     }
 
     // Buscar usuário por ID
